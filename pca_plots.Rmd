@@ -1,0 +1,179 @@
+---
+title: "Principal Components Analysis"
+output: html_notebook
+---
+
+```{r libraries, echo = FALSE}
+library(tidyverse)
+library(RcppCNPy)
+```
+
+```{r pcangsd-cov-output}
+C <- as.matrix(read.table("data/pcangsd_plain_out.cov"))
+
+e <- eigen(C)
+t <- tibble(
+  PC1 = e$vectors[,1],
+  PC2 = e$vectors[,2]
+)
+```
+
+```{r data-processing}
+meta_data <- read_csv("data/herring_metadata.csv")
+snames <- read_lines("data/snames_herring")
+t <- add_column(t, snames)
+data <- right_join(t, meta_data, by = c("snames" = "NMFS_DNA_ID"))
+data <- data %>%
+  rename(NMFS_DNA_ID = snames)
+```
+
+```{r full-figure}
+pca_colors <- c(
+  `Peticodiac River` = "#0c343d",
+  `Hudson River` = "#134f5c",
+  `Lake Yonah` = "#45818e",
+  `Lake Hartwell` = "#76a5af",
+  `Altamaha River` = "#9fc5e8",
+  `Miramichi River` = "#373d24",
+  `East Grand Lake` = "#606b3f",
+  `Blackman Stream` = "#8a9a5b",
+  `Saco River` = "#d0d6bd",
+  `Lake Champlain` = "#520101",
+  #`Hudson River` = "#840000",
+  `Choptank River` = "#a60000",
+  `Roanoke River` = "#ff0000",
+  `Pattagansett Lake` = "#ff5a00",
+  `Quonnipaug Lake` = "#ffcf86",
+  `Rogers Lake` = "#fffcad",
+  `Ostico Lake` = "#ff0081",
+  `Canandaigua Lake` = "#ff48a5",
+  `Seneca Lake` = "#ff77bc",
+  `Cayuga Lake` = "#ffcae5",
+  `Lake Superior` = "#660066",
+  `Lake Michigan` = "#be29ec",
+  `Lake Ontario` = "#efbbff"
+)
+
+pca_shapes <- c(
+  `aestivalis` = 21,
+  `pseudoharengus` = 24,
+  `hybrid` = 25
+)
+
+full_PCA <- ggplot(data = data, 
+                   mapping = aes( x = PC1, y = PC2, 
+                                  fill = WATER_NAME,
+                                  shape = SPECIES)) +
+  geom_point(size = 5.5) +
+  theme_bw() +
+  geom_point(size = 5, stroke = 0.05, alpha = 0.75) +
+  scale_fill_manual(values = pca_colors) +
+  scale_shape_manual(values = pca_shapes) +
+  guides(fill = guide_legend(override.aes = list(shape = 22, stroke = 0.5, size = 3)),
+         shape = guide_legend(override.aes = list(stroke = 0.5, size = 2))) +
+  labs(fill = "Water Name",
+       shape = "Species")
+```
+
+```{r alewife-figure}
+lim_data <- subset(data, SPECIES %in% c("pseudoharengus", "hybrid"))
+
+lim_pca_colors <- c(
+  `Miramichi River` = "#373d24",
+  `East Grand Lake` = "#606b3f",
+  `Blackman Stream` = "#8a9a5b",
+  `Saco River` = "#d0d6bd",
+  `Lake Champlain` = "#520101",
+  `Hudson River` = "#840000",
+  `Choptank River` = "#a60000",
+  `Roanoke River` = "#ff0000",
+  `Pattagansett Lake` = "#ff5a00",
+  `Quonnipaug Lake` = "#ffcf86",
+  `Rogers Lake` = "#fffcad",
+  `Ostico Lake` = "#ff0081",
+  `Canandaigua Lake` = "#ff48a5",
+  `Seneca Lake` = "#ff77bc",
+  `Cayuga Lake` = "#ffcae5",
+  `Lake Superior` = "#660066",
+  `Lake Michigan` = "#be29ec",
+  `Lake Ontario` = "#efbbff"
+)
+
+alewife_PCA <- ggplot(data = lim_data, 
+                   mapping = aes( x = PC1, y = PC2, 
+                                  fill = WATER_NAME)) +
+  geom_point(size = 5.5, shape = 24) +
+  theme_bw() +
+  geom_point(size = 5, stroke = 0.05, alpha = 0.75, shape = 24) +
+  scale_fill_manual(values = lim_pca_colors) +
+  guides(fill = guide_legend(override.aes = list(shape = 24, stroke = 0.5, size = 3))) +
+  labs(fill = "Water Name")
+```
+
+```{r upper-alewife}
+upper <- subset(lim_data, WATER_NAME %in% c("Miramichi River", 
+                                            "East Grand Lake",
+                                            "Blackman Stream",
+                                            "Saco River",
+                                            "Lake Champlain",
+                                            "Hudson River",
+                                            "Choptank River",
+                                            "Roanoke River",
+                                            "Pattagansett Lake",
+                                            "Quonnipaug Lake",
+                                            "Rogers Lake"))
+upper_pca_colors <- c(
+    `Miramichi River` = "#373d24",
+    `East Grand Lake` = "#606b3f",
+    `Blackman Stream` = "#8a9a5b",
+    `Saco River` = "#d0d6bd",
+    `Lake Champlain` = "#520101",
+    `Hudson River` = "#840000",
+    `Choptank River` = "#a60000",
+    `Roanoke River` = "#ff0000",
+    `Pattagansett Lake` = "#ff5a00",
+    `Quonnipaug Lake` = "#ffcf86",
+    `Rogers Lake` = "#fffcad"
+)
+
+upper_PCA <- ggplot(data = upper, 
+                    mapping = aes( x = PC1, y = PC2, 
+                                    fill = WATER_NAME)) +
+  geom_point(size = 5.5, shape = 24) +
+  theme_bw() +
+  geom_point(size = 5, stroke = 0.05, alpha = 0.75, shape = 24) +
+  scale_fill_manual(values = upper_pca_colors) +
+  guides(fill = guide_legend(override.aes = list(shape = 24, stroke = 0.5, size = 3))) +
+  labs(fill = "Water Name")
+```
+
+
+```{r lower-alewife}
+lower <- subset(lim_data, WATER_NAME %in% c("Ostico Lake",
+                                             "Canandaigua Lake",
+                                             "Seneca Lake",
+                                             "Cayuga Lake",
+                                             "Lake Superior",
+                                             "Lake Michigan",
+                                             "Lake Ontario"))
+lower_pca_colors <- c(
+    `Ostico Lake` = "#ff0081",
+    `Canandaigua Lake` = "#ff48a5",
+    `Seneca Lake` = "#ff77bc",
+    `Cayuga Lake` = "#ffcae5",
+    `Lake Superior` = "#660066",
+    `Lake Michigan` = "#be29ec",
+    `Lake Ontario` = "#efbbff"
+)
+
+ggplot(data = lower, 
+                   mapping = aes( x = PC1, y = PC2, 
+                                  fill = WATER_NAME)) +
+  geom_point(size = 5.5, shape = 24) +
+  theme_bw() +
+  geom_point(size = 5, stroke = 0.05, alpha = 0.75, shape = 24) +
+  scale_fill_manual(values = lower_pca_colors) +
+  guides(fill = guide_legend(override.aes = list(shape = 24, stroke = 0.5, size = 3))) +
+  labs(fill = "Water Name")
+```
+
